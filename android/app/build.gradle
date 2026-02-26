@@ -1,0 +1,26 @@
+// Flutter Android build configuration
+
+android {
+    compileSdkVersion 33
+
+    defaultConfig {
+        applicationId "com.example.yahya_coderoute"
+        minSdkVersion 21
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            // TODO: Add your release settings
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation "com.android.support:multidex:1.0.3"
+}
