@@ -1,0 +1,241 @@
+// main.dart
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart';
+
+void main() => runApp(YahyaCodeRouteApp());
+
+class YahyaCodeRouteApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Yahya CodeRoute',
+      theme: ThemeData(
+        primaryColor: Colors.red,
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          primary: Colors.red,
+          secondary: Colors.black,
+        ),
+      ),
+      home: SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => HomeScreen()));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image.asset("assets/images/road_sign.png", width: 150),
+      ),
+    );
+  }
+}
+
+// نموذج بيانات المخالفة
+class Violation {
+  final String code;
+  final String category;
+  final int degree;
+  final String title;
+  final String fine;
+  final int points;
+  final String licenseSuspension;
+  final String prison;
+  final String procedure;
+
+  Violation({
+    required this.code,
+    required this.category,
+    required this.degree,
+    required this.title,
+    required this.fine,
+    required this.points,
+    required this.licenseSuspension,
+    required this.prison,
+    required this.procedure,
+  });
+
+  factory Violation.fromJson(Map<String, dynamic> json) {
+    return Violation(
+      code: json['code'],
+      category: json['category'],
+      degree: json['degree'],
+      title: json['title'],
+      fine: json['fine'],
+      points: json['points'],
+      licenseSuspension: json['license_suspension'],
+      prison: json['prison'],
+      procedure: json['procedure'],
+    );
+  }
+}
+
+// شاشة رئيسية
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Violation> violations = [];
+  String search = "";
+  bool darkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadViolations();
+  }
+
+  Future<void> loadViolations() async {
+    final String response =
+        await rootBundle.loadString('assets/data/violations.json');
+    final data = await json.decode(response) as List;
+    setState(() {
+      violations = data.map((v) => Violation.fromJson(v)).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = violations
+        .where((v) =>
+            v.title.contains(search) || v.code.contains(search))
+        .toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Yahya CodeRoute"),
+        backgroundColor: Colors.red,
+        actions: [
+          IconButton(
+            icon: Icon(darkMode ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () {
+              setState(() {
+                darkMode = !darkMode;
+              });
+            },
+          )
+        ],
+      ),
+      backgroundColor: darkMode ? Colors.grey[900] : Colors.white,
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: TextField(
+              style: TextStyle(color: darkMode ? Colors.white : Colors.black),
+              decoration: InputDecoration(
+                hintText: "ابحث عن مخالفة...",
+                hintStyle: TextStyle(color: darkMode ? Colors.grey[400] : Colors.grey),
+                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: darkMode ? Colors.grey[800] : Colors.white,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  search = value;
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final v = filtered[index];
+                return Card(
+                  color: darkMode ? Colors.grey[800] : Colors.white,
+                  margin: EdgeInsets.all(8),
+                  child: ListTile(
+                    title: Text(v.title,
+                        style: TextStyle(
+                            color: darkMode ? Colors.white : Colors.black)),
+                    subtitle: Text(
+                        "الرمز: ${v.code} | النوع: ${v.category} | الدرجة: ${v.degree}",
+                        style: TextStyle(
+                            color: darkMode ? Colors.grey[300] : Colors.black87)),
+                    trailing: Icon(Icons.arrow_forward,
+                        color: darkMode ? Colors.white : Colors.black),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(violation: v),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// صفحة التفاصيل
+class DetailScreen extends StatelessWidget {
+  final Violation violation;
+  DetailScreen({required this.violation});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("تفاصيل المخالفة"),
+        backgroundColor: Colors.red,
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("الرمز: ${violation.code}",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 10),
+              Text("المخالفة: ${violation.title}", style: TextStyle(fontSize: 18)),
+              SizedBox(height: 10),
+              Text("النوع: ${violation.category}"),
+              SizedBox(height: 10),
+              Text("الدرجة: ${violation.degree}"),
+              SizedBox(height: 10),
+              Text("الغرامة: ${violation.fine}"),
+              SizedBox(height: 10),
+              Text("عدد النقط: ${violation.points}"),
+              SizedBox(height: 10),
+              Text("سحب الرخصة: ${violation.licenseSuspension}"),
+              SizedBox(height: 10),
+              Text("العقوبة الحبسية: ${violation.prison}"),
+              SizedBox(height: 10),
+              Text("الإجراءات القانونية:"),
+              SizedBox(height: 5),
+              Text(violation.procedure),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
